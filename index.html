@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>サイクルタイマー</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f4f0;
+      --surface: #ffffff;
+      --surface2: #f0efe9;
+      --border: rgba(0,0,0,0.1);
+      --text-primary: #1a1a18;
+      --text-secondary: #6b6a64;
+      --text-tertiary: #a09f99;
+      --green: #1D9E75;
+      --amber: #BA7517;
+      --red: #E24B4A;
+      --radius-md: 8px;
+      --radius-lg: 14px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1a1a18;
+        --surface: #242422;
+        --surface2: #2e2e2b;
+        --border: rgba(255,255,255,0.1);
+        --text-primary: #f0efe9;
+        --text-secondary: #a09f99;
+        --text-tertiary: #6b6a64;
+      }
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem 1.75rem;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h1 {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 1.75rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 1.75rem;
+    }
+
+    .field {
+      flex: 1;
+    }
+
+    .field label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    input[type="number"], input[type="text"] {
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 15px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input[type="number"] {
+      width: 72px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 500;
+    }
+
+    input:focus {
+      border-color: var(--green);
+    }
+
+    .unit {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .ring-wrap {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto 1.75rem;
+    }
+
+    .ring-wrap svg {
+      position: absolute;
+      top: 0; left: 0;
+      transform: rotate(-90deg);
+    }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    #timeDisplay {
+      font-size: 42px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: -1px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #cycleCount {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    #statusLabel {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    .btns {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    button {
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 9px 20px;
+      transition: background 0.12s, opacity 0.12s, transform 0.08s;
+    }
+
+    button:hover:not(:disabled) { background: var(--border); }
+    button:active:not(:disabled) { transform: scale(0.97); }
+    button:disabled { opacity: 0.38; cursor: not-allowed; }
+
+    button.primary {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+      font-weight: 500;
+    }
+
+    button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+    .history-wrap {
+      background: var(--surface2);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+    }
+
+    .history-title {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    #history {
+      font-size: 12px;
+      color: var(--text-secondary);
+      max-height: 90px;
+      overflow-y: auto;
+      line-height: 1.8;
+    }
+
+    #history .empty {
+      color: var(--text-tertiary);
+    }
+
+    #history .entry {
+      border-bottom: 0.5px solid var(--border);
+      padding: 1px 0;
+    }
+
+    #history .entry:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>サイクルタイマー</h1>
+
+  <div class="controls">
+    <div class="field">
+      <label>サイクル秒数</label>
+      <div class="field-row">
+        <input type="number" id="cycleInput" min="1" max="3600" value="7" />
+        <span class="unit">秒</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>ラベル（任意）</label>
+      <input type="text" id="labelInput" placeholder="例: マッサージ" />
+    </div>
+  </div>
+
+  <div class="ring-wrap">
+    <svg width="200" height="200">
+      <circle cx="100" cy="100" r="88" fill="none" stroke="var(--border)" stroke-width="9" />
+      <circle id="progressRing" cx="100" cy="100" r="88" fill="none"
+        stroke="#1D9E75" stroke-width="9" stroke-linecap="round"
+        stroke-dasharray="552.92" stroke-dashoffset="552.92" />
+    </svg>
+    <div class="ring-center">
+      <div id="timeDisplay">0:07</div>
+      <div id="cycleCount">サイクル 0</div>
+      <div id="statusLabel">停止中</div>
+    </div>
+  </div>
+
+  <div class="btns">
+    <button class="primary" id="startBtn" onclick="startTimer()">開始</button>
+    <button id="pauseBtn" onclick="pauseTimer()" disabled>一時停止</button>
+    <button onclick="resetTimer()">リセット</button>
+  </div>
+
+  <div class="history-wrap">
+    <div class="history-title">履歴</div>
+    <div id="history"><span class="empty">まだ記録がありません</span></div>
+  </div>
+</div>
+
+<script>
+  const CIRCUMFERENCE = 2 * Math.PI * 88;
+  let cycleSec = 7;
+  let elapsed = 0;
+  let cycleNum = 0;
+  let running = false;
+  let intervalId = null;
+  let historyLog = [];
+
+  document.getElementById('progressRing').style.strokeDasharray = CIRCUMFERENCE.toFixed(2);
+  updateDisplay();
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.13, 0.26].forEach((delay, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine';
+        o.frequency.value = i === 2 ? 880 : 660;
+        g.gain.setValueAtTime(0, ctx.currentTime + delay);
+        g.gain.linearRampToValueAtTime(0.3, ctx.currentTime + delay + 0.02);
+        g.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + 0.18);
+        o.start(ctx.currentTime + delay);
+        o.stop(ctx.currentTime + delay + 0.22);
+      });
+    } catch(e) {}
+  }
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m + ':' + String(sec).padStart(2, '0');
+  }
+
+  function ringColor(pct) {
+    if (pct < 0.7) return '#1D9E75';
+    if (pct < 0.9) return '#BA7517';
+    return '#E24B4A';
+  }
+
+  function updateDisplay() {
+    const remaining = cycleSec - elapsed;
+    document.getElementById('timeDisplay').textContent = formatTime(remaining);
+    document.getElementById('cycleCount').textContent = 'サイクル ' + cycleNum;
+    const pct = Math.min(elapsed / cycleSec, 1);
+    const offset = CIRCUMFERENCE * (1 - pct);
+    const ring = document.getElementById('progressRing');
+    ring.style.strokeDashoffset = offset.toFixed(2);
+    ring.style.stroke = ringColor(pct);
+    ring.style.transition = running ? 'stroke-dashoffset 0.2s linear' : 'none';
+  }
+
+  function tick() {
+    elapsed++;
+    updateDisplay();
+    if (elapsed >= cycleSec) {
+      beep();
+      cycleNum++;
+      const label = document.getElementById('labelInput').value || 'サイクル完了';
+      const now = new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+      historyLog.unshift('[' + now + '] サイクル ' + cycleNum + ' — ' + label);
+      renderHistory();
+      elapsed = 0;
+    }
+  }
+
+  function renderHistory() {
+    const el = document.getElementById('history');
+    if (historyLog.length === 0) {
+      el.innerHTML = '<span class="empty">まだ記録がありません</span>';
+      return;
+    }
+    el.innerHTML = historyLog.slice(0, 10).map(h =>
+      '<div class="entry">' + h + '</div>'
+    ).join('');
+  }
+
+  function startTimer() {
+    const val = parseInt(document.getElementById('cycleInput').value);
+    if (!val || val < 1) return;
+    cycleSec = val;
+    if (!running) {
+      running = true;
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('pauseBtn').disabled = false;
+      document.getElementById('statusLabel').textContent = '実行中';
+      intervalId = setInterval(tick, 1000);
+    }
+  }
+
+  function pauseTimer() {
+    if (running) {
+      running = false;
+      clearInterval(intervalId);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('pauseBtn').disabled = true;
+      document.getElementById('statusLabel').textContent = '一時停止中';
+    }
+  }
+
+  function resetTimer() {
+    clearInterval(intervalId);
+    running = false;
+    elapsed = 0;
+    cycleNum = 0;
+    historyLog = [];
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('pauseBtn').disabled = true;
+    document.getElementById('statusLabel').textContent = '停止中';
+    cycleSec = parseInt(document.getElementById('cycleInput').value) || 7;
+    updateDisplay();
+    renderHistory();
+  }
+
+  document.getElementById('cycleInput').addEventListener('change', () => {
+    if (!running) {
+      cycleSec = parseInt(document.getElementById('cycleInput').value) || 7;
+      elapsed = 0;
+      updateDisplay();
+    }
+  });
+</script>
+</body>
+</html>
